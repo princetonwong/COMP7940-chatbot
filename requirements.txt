@@ -1,0 +1,4 @@
+telegram
+configparser
+redis
+python-telegram-bot
