@@ -1,0 +1,10 @@
+version: '3'
+services:
+  chatbot:
+    build: .
+    environment:
+        - ACCESS_TOKEN=5721064969:AAHPpjRTu3PGP_OE54Mnu4jG8D7IVNTSRSo
+        - HOST=redis-10334.c251.east-us-mz.azure.cloud.redislabs.com
+        - PASSWORD=slI9wT50AQiJp0eH5Eu89EfgLiRiYThk
+        - REDISPORT=10334
+    entrypoint: python chatbot.py

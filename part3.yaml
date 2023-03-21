@@ -1,0 +1,17 @@
+version: '3'
+services:
+  chatbot:
+    build: .
+    environment:
+        - ACCESS_TOKEN=5721064969:AAHPpjRTu3PGP_OE54Mnu4jG8D7IVNTSRSo
+        - HOST=redis
+        - PASSWORD=comp7940passwordlab8
+        - REDISPORT=6379
+    entrypoint: python chatbot.py
+    depends_on:
+      - redis
+  redis:
+    image: redis
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "/usr/local/etc/redis/redis.conf" ]
