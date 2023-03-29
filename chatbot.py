@@ -1,26 +1,19 @@
-from telegram import Update, ParseMode
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-# import configparser
+from telegram import Update, ParseMode, InputFile
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, RegexHandler
+import configparser
 import os
 import logging
 import redis
-
 global redis1
 from Database import Database
-
-# DATABASE_URL = os.environ['DATABASE_URL']
-
-# TODO: Enable /searchSchool function to obtain {schoolCode} from {schoolName}
-# TODO: Allow /search command from {schoolCode, form, exam/test, fileType, year) to [fileDescription, fileType, fileSize]
-# TODO: Allow dynamic /file<id> command to download file hosted on GDrive
-# TODO: Downloaded times
+from Paper import Paper
+import requests
+from io import BytesIO
 
 
+# TODO: Add total downloaded times [redis]
 
 def main():
-    # Load your token and create an Updater for your Bot
-    # config = configparser.ConfigParser()
-    # config.read('config.ini')
     updater = Updater(token=(os.environ['ACCESS_TOKEN']), use_context=True)
     dispatcher = updater.dispatcher
     global redis1
@@ -35,11 +28,16 @@ def main():
     # register a dispatcher to handle message: here we register an echo dispatcher
     echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
     dispatcher.add_handler(echo_handler)
+
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("add", add))
-    dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("help", help))
     dispatcher.add_handler(CommandHandler("hello", hello))
     dispatcher.add_handler(CommandHandler("searchSchool", searchSchool))
+    dispatcher.add_handler(CommandHandler("searchPaper", searchPaper))
+    dispatcher.add_handler(RegexHandler(r'^/sp(\w+)$', searchPaperRegex))
+    dispatcher.add_handler(RegexHandler(r'^/file(\w+)$', fileIDRegex))
+
     # To start the bot:
     updater.start_polling()
     updater.idle()
@@ -50,13 +48,6 @@ def echo(update, context):
     logging.info("Update: " + str(update))
     logging.info("context: " + str(context))
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply_message)
-
-
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
-def help_command(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Helping you helping you.')
 
 
 def add(update: Update, context: CallbackContext) -> None:
@@ -82,6 +73,13 @@ def hello(update: Update, context: CallbackContext) -> None:
         update.message.reply_text('Usage: /add <keyword>')
 
 
+# TODO: /help command to list all static commands
+def help(update: Update, context: CallbackContext) -> None:
+    """Send a message when the command /help is issued."""
+    update.message.reply_text('Helping you helping you.')
+
+
+# Enable /searchSchool command to obtain {schoolCode} by searching {schoolName}
 def searchSchool(update: Update, context: CallbackContext) -> None:
     from School import School
     try:
@@ -92,10 +90,16 @@ def searchSchool(update: Update, context: CallbackContext) -> None:
 
         count = len(records)
         schools = [School(*kwargs) for kwargs in records]
+
+        if count == 0:
+            update.message.reply_text(f"We cannot found any 🏫 for your request. Try again.",
+                                  reply_to_message_id=update.message.message_id)
+            return
+
         replyText = f"Good news! We found {count} 🏫 for your request!\n"
 
         for school in schools:
-            replyText += f"""<b>🏫[/{school.code}] {school.chinesename}</b>
+            replyText += f"""<b>🏫[/sp{school.code}] {school.chinesename}</b>
 <i>{school.englishname}</i>
 \n"""
 
@@ -105,6 +109,76 @@ def searchSchool(update: Update, context: CallbackContext) -> None:
 
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /add <keyword>')
+
+
+# Allow /searchPaper command from {schoolCode, form, exam/test, fileType, year) to [fileDescription, fileType, fileSize]
+def __sp(update: Update, context: CallbackContext, searchString) -> None:
+    db = Database()
+    records = db.searchPaper(searchString)
+
+    count = len(records)
+    papers = [Paper(*kwargs) for kwargs in records]
+
+    if count == 0:
+        update.message.reply_text(f"We cannot found any 📄 for your request. Try again.",
+                                  reply_to_message_id=update.message.message_id)
+        return
+
+    else:
+        replyText = f"Good news! We found {count} 📄 for your request!\n"
+
+        for paper in papers:
+            replyText += f"""<strong>{paper.name}</strong>
+📄/file{paper.fileID} ({paper.fileType}, {paper.human_readable_size})
+\n"""
+
+        update.message.reply_text(replyText,
+                                  reply_to_message_id=update.message.message_id,
+                                  parse_mode=ParseMode.HTML)
+
+
+def searchPaperRegex(update: Update, context: CallbackContext) -> None:
+    try:
+        logging.info(context.matches[0].group(1))
+        __sp(update, context, searchString=context.matches[0].group(1))
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /add <keyword>',
+                                  reply_to_message_id=update.message.message_id)
+
+
+def searchPaper(update: Update, context: CallbackContext) -> None:
+    try:
+        logging.info(context.args[0])
+        __sp(update, context, searchString=context.args[0])
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /add <keyword>',
+                                  reply_to_message_id=update.message.message_id)
+
+
+# Allow dynamic /file<id> command to download file hosted on GDrive
+# TODO: Downloaded times [redis]
+def fileIDRegex(update: Update, context: CallbackContext) -> None:
+    try:
+        logging.info(context.matches[0].group(1))
+        file_id = context.matches[0].group(1)
+        db = Database()
+        args = db.getFileID(file_id)
+
+        paper = Paper(*args)
+
+        # file = InputFile.from_url(file_url)
+        response = requests.get(paper.gdrivelink, allow_redirects=True)
+        file = InputFile(BytesIO(response.content), filename=paper.name)
+
+        # Send the file as an attachment
+        context.bot.send_document(chat_id=update.effective_chat.id, document=file)
+
+    except (IndexError, ValueError):
+        update.message.reply_text(f'Cannot find fileId {context.matches[0].group(1)}',
+                                  reply_to_message_id=update.message.message_id)
+
 
 if __name__ == '__main__':
     main()
