@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 # import configparser
 import os
@@ -6,16 +6,6 @@ import logging
 import redis
 
 global redis1
-from Database import Database
-
-# DATABASE_URL = os.environ['DATABASE_URL']
-
-# TODO: Enable /searchSchool function to obtain {schoolCode} from {schoolName}
-# TODO: Allow /search command from {schoolCode, form, exam/test, fileType, year) to [fileDescription, fileType, fileSize]
-# TODO: Allow dynamic /file<id> command to download file hosted on GDrive
-# TODO: Downloaded times
-
-
 
 def main():
     # Load your token and create an Updater for your Bot
@@ -39,7 +29,6 @@ def main():
     dispatcher.add_handler(CommandHandler("add", add))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("hello", hello))
-    dispatcher.add_handler(CommandHandler("searchSchool", searchSchool))
     # To start the bot:
     updater.start_polling()
     updater.idle()
@@ -77,31 +66,6 @@ def hello(update: Update, context: CallbackContext) -> None:
         logging.info(context.args[0])
         name = context.args[0]
         update.message.reply_text(f"Good day, {name}!")
-
-    except (IndexError, ValueError):
-        update.message.reply_text('Usage: /add <keyword>')
-
-
-def searchSchool(update: Update, context: CallbackContext) -> None:
-    from School import School
-    try:
-        logging.info(context.args[0])
-        searchString = context.args[0]
-        db = Database()
-        records = db.searchSchool(searchString)
-
-        count = len(records)
-        schools = [School(*kwargs) for kwargs in records]
-        replyText = f"Good news! We found {count} 🏫 for your request!\n"
-
-        for school in schools:
-            replyText += f"""<b>🏫[/{school.code}] {school.chinesename}</b>
-<i>{school.englishname}</i>
-\n"""
-
-        update.message.reply_text(replyText,
-                                  reply_to_message_id=update.message.message_id,
-                                  parse_mode=ParseMode.HTML)
 
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /add <keyword>')
