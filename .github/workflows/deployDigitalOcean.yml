@@ -31,7 +31,7 @@ jobs:
         env:
           DO_DROPLET_IP: "139.59.124.127"
         run: |
-          export DOCKER_HOST=ssh://root@DO_DROPLET_IP
+          export DOCKER_HOST=ssh://root@$DO_DROPLET_IP
           export DOCKER_HOST_SSHKEY=/root/.ssh/id_rsa
           docker-compose up -d
 
@@ -39,5 +39,5 @@ jobs:
         env:
           DO_DROPLET_IP: "139.59.124.127"
         run: |
-          git remote add digitalocean ssh://root@DO_DROPLET_IP/var/repo
+          git remote add digitalocean ssh://root@$DO_DROPLET_IP/var/repo
           git push digitalocean main
