@@ -54,11 +54,16 @@ def add(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /add is issued."""
     try:
         global redis1
-        logging.info(context.args[0])
-        msg = context.args[0]  # /add keyword <-- this should store the keyword
-        redis1.incr(msg)
-        update.message.reply_text('You have said ' + msg + ' for ' +
-                                  redis1.get(msg).decode('UTF-8') + ' times.')
+        replyText = ""
+        for key in redis1.scan_iter('*'):
+            value = redis1.get(key)
+            replyText += f"({key.decode('UTF-8')}: {value.decode('UTF-8')}
+        update.message.reply_text(replyText)
+        # logging.info(context.args[0])
+        # msg = context.args[0]  # /add keyword <-- this should store the keyword
+        # redis1.incr(msg)
+        # update.message.reply_text('You have said ' + msg + ' for ' +
+        #                           redis1.get(msg).decode('UTF-8') + ' times.')
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /add <keyword>')
 
@@ -174,6 +179,8 @@ def fileIDRegex(update: Update, context: CallbackContext) -> None:
 
         # Send the file as an attachment
         context.bot.send_document(chat_id=update.effective_chat.id, document=file)
+
+        redis1.incr(paper.name)
 
     except (IndexError, ValueError):
         update.message.reply_text(f'Cannot find fileId {context.matches[0].group(1)}',
