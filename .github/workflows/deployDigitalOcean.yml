@@ -1,0 +1,43 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+          sudo apt-get install -y git
+
+      - name: Build Docker images
+        run: |
+          docker-compose build
+
+      - name: Login to DigitalOcean
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+
+      - name: Deploy Docker Compose
+        env:
+          DO_DROPLET_IP: "139.59.124.127"
+        run: |
+          export DOCKER_HOST=ssh://root@DO_DROPLET_IP
+          export DOCKER_HOST_SSHKEY=/root/.ssh/id_rsa
+          docker-compose up -d
+
+      - name: Push changes to DigitalOcean
+        env:
+          DO_DROPLET_IP: "139.59.124.127"
+        run: |
+          git remote add digitalocean ssh://root@DO_DROPLET_IP/var/repo
+          git push digitalocean main
