@@ -35,11 +35,17 @@ class Database(object):
         # psql -h "ec2-52-205-45-222.compute-1.amazonaws.com" -U "dlrggmpuyfznjv" -d "d8lo9ipulmq31b" -c "\copy school FROM '/Users/princetonwong/PycharmProjects/chatbot/Schools.csv' with (format csv,header true, delimiter ',');"
 
     def searchSchool(self, searchString):
-        # keywords = parsePossibleListStringToListNew(searchString)
+        keywords = parsePossibleListStringToListNew(searchString)
+
+        subquery = ""
+        for index, kw in enumerate(keywords):
+            subquery += f"CONCAT_WS(' - ', code, englishname, chinesename) like '%{kw}%'"
+            if index != len(keywords) - 1:
+                subquery += " and "
 
         sql = f"""SELECT code, englishname, chinesename
         FROM school
-        WHERE CONCAT_WS(' - ', code, englishname, chinesename) LIKE '%{searchString}%'
+        WHERE ({subquery})
         ORDER BY code;"""
 
         self.cursor.execute(sql)
@@ -89,41 +95,80 @@ class Database(object):
         return args
 
         # if args:
-        #     # from pydrive2.auth import GoogleAuth
-        #     # from pydrive2.drive import GoogleDrive
-        #     # from googleapiclient.discovery import build
-        #     #
-        #     # def connect_google_drive_api():
-        #     #     gauth = GoogleAuth()
-        #     #     gauth.LoadCredentialsFile("credentials.json")
-        #     #     if gauth.credentials is None:
-        #     #         # Authenticate if they're not there
-        #     #         # This is what solved the issues:
-        #     #         gauth.GetFlow()
-        #     #         gauth.flow.params.update({'access_type': 'offline'})
-        #     #         gauth.flow.params.update({'approval_prompt': 'force'})
-        #     #         gauth.LocalWebserverAuth()
-        #     #     elif gauth.access_token_expired:
-        #     #         # Refresh them if expired
-        #     #         gauth.Refresh()
-        #     #     else:
-        #     #         # Initialize the saved creds
-        #     #         gauth.Authorize()
-        #     #     gauth.SaveCredentialsFile("credentials.json")
-        #     #     drive = GoogleDrive(gauth)
-        #     #     creds = gauth.credentials
-        #     #
-        #     #     return drive, creds
-        #     #
-        #     # creds = None
-        #     # drive, creds = connect_google_drive_api()
-        #     # service = build('drive', 'v3', credentials=creds)
+        #     from googleapiclient.discovery import build
+        #     import os
+        #     import google.auth
+        #     from google.auth.transport.requests import Request
+        #     from google.oauth2.credentials import Credentials
+        #     from google_auth_oauthlib.flow import InstalledAppFlow
+        #     from googleapiclient.discovery import build
+        #     from googleapiclient.errors import HttpError
+        #     import io
+        #     from googleapiclient.http import MediaIoBaseDownload
         #
-        #     # Generate a download link for the file
-        #     # file_link = service.files().get(fileId=partialFileID, fields='webContentLink').execute()['webContentLink'].replace('open', 'uc')
-        #     # print(f"File name: {file_metadata['name']}")
-        #     logging.info(f"Download link: {paper.gdrivelink}")
-        #     return paper.gdrivelink
+        #     creds, _ = google.auth.default()
+        #     service = build('drive', 'v3', credentials=creds)
+        #
+        #     def connect_google_drive_api():
+        #         creds = None
+        #         SCOPES = ['https://www.googleapis.com/auth/drive.file']
+        #         # The file token.json stores the user's access and refresh tokens, and is
+        #         # created automatically when the authorization flow completes for the first
+        #         # time.
+        #         if os.path.exists('token.json'):
+        #             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        #         # If there are no (valid) credentials available, let the user log in.
+        #         if not creds or not creds.valid:
+        #             if creds and creds.expired and creds.refresh_token:
+        #                 creds.refresh(Request())
+        #             else:
+        #                 flow = InstalledAppFlow.from_client_secrets_file(
+        #                     'credentials-desktop.json', SCOPES)
+        #                 creds = flow.run_local_server(port=0)
+        #             # Save the credentials for the next run
+        #             with open('token.json', 'w') as token:
+        #                 token.write(creds.to_json())
+        #
+        #         try:
+        #             service = build('drive', 'v3', credentials=creds)
+        #             return service, creds
+        #
+        #         except HttpError as error:
+        #             # TODO(developer) - Handle errors from drive API.
+        #             print(f'An error occurred: {error}')
+        #
+        #     # service, creds = connect_google_drive_api()
+        #     file_id = args[-1]
+        #     local_path = f'./{file_id}.pdf'
+        #
+        #     try:
+        #         request = service.files().get_media(fileId=file_id)
+        #         file = io.BytesIO()
+        #         downloader = MediaIoBaseDownload(file, request)
+        #         done = False
+        #         while done is False:
+        #             status, done = downloader.next_chunk()
+        #             print(F'Download {int(status.progress() * 100)}.')
+        #
+        #
+        #     except HttpError as error:
+        #         print(F'An error occurred: {error}')
+        #         file = None
+        #
+        #     # Write the file data to a local file
+        #     with open(local_path, 'wb') as f:
+        #         f.write(file.getbuffer())
+        #
+        #     return args, file.getvalue()
+        #
+        #     # # Generate a download link for the file
+        #     # print(args)
+        #     # file = service.files().get(fileId=args[-1], fields='webContentLink').execute()
+        #     # print(file)
+        #     # file_link = file['webContentLink'].replace('open', 'uc')
+        #     # print(file_link)
+        #     # logging.info(f"Download link: {file_link}")
+        #     # return file_link
         # else:
         #     return None
 
@@ -140,4 +185,4 @@ if __name__ == "__main__":
     # papers = [Paper(*args) for args in records]
     # print(papers[0].human_readable_size)
 
-    record = db.getFileID("1gEae3G9s_ZAOKYHU4CN51I5yS9MN3OMx")
+    record = db.getFileID("1WXJGXVOxFeJdstBjuIVe")
