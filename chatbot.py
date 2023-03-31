@@ -120,7 +120,7 @@ def searchSchool(update: Update, context: CallbackContext) -> None:
                                   reply_to_message_id=update.message.message_id)
             return
 
-        replyText = f"Good news! We found {count} 🏫 for your request!\n"
+        replyText = f"Good news! We found {count} 🏫 for your request!\n\n"
 
         for school in schools:
             replyText += f"""<b>🏫[/sp{school.code}] {school.chinesename}</b>
@@ -149,7 +149,7 @@ def __sp(update: Update, context: CallbackContext, searchString) -> None:
         return
 
     else:
-        replyText = f"Good news! We found {count} 📄 for your request!\n"
+        replyText = f"Good news! We found {count} 📄 for your request!\n\n"
 
         for paper in papers:
             replyText += f"""<strong>{paper.name}</strong>
