@@ -31,7 +31,7 @@ jobs:
         script: |
           cd /home/mystack/chatbot
           git pull
-          docker-compose up -d --build -f docker-compose.yaml
+          docker-compose -f docker-compose.yaml up --build -d
 
     - name: Dump docker logs
       uses: jwalton/gh-docker-logs@v1
