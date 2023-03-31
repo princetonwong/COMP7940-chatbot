@@ -6,6 +6,12 @@ on:
       - main
 
 jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@v2
+
   deploy:
     needs: build_and_push
     runs-on: ubuntu-latest
