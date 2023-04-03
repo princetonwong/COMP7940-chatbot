@@ -1,15 +1,17 @@
 import logging
+import os
+
 import psycopg2
 from Utilities import parsePossibleListStringToListNew
 
 
 class Database(object):
     def __init__(self):
-        self.conn = psycopg2.connect(database="d8lo9ipulmq31b",
-                                user='dlrggmpuyfznjv',
-                                password='9e6cb5354edb6c3c6c6b4ecf0fa15b7b4c31397adc3f75f37d8417fa74cac98e',
-                                host='ec2-52-205-45-222.compute-1.amazonaws.com',
-                                port='5432'
+        self.conn = psycopg2.connect(database=os.environ["POSTGRES_DATABSE"], #"d8lo9ipulmq31b",
+                                user=os.environ["POSTGRES_USER"], #'dlrggmpuyfznjv',
+                                password=os.environ["POSTGRES_PASSWORD"], #'9e6cb5354edb6c3c6c6b4ecf0fa15b7b4c31397adc3f75f37d8417fa74cac98e',
+                                host=os.environ["POSTGRES_HOST"], #'ec2-52-205-45-222.compute-1.amazonaws.com',
+                                port= os.environ["POSTGRES_PORT"], #'5432'
                                 )
 
         self.conn.autocommit = True
