@@ -65,8 +65,8 @@ def help(update: Update, context: CallbackContext) -> None:
 def topDownload(update: Update, context: CallbackContext) -> None:
     try:
         global redis1
-
-        sorted_pairs = redis1.zrange('paperName', 0, -1, desc=True, withscores=True)
+        username = update.message.from_user.username
+        sorted_pairs = redis1.zrange(f"{username}_paperName", 0, -1, desc=True, withscores=True)
 
         if len(sorted_pairs) > 10:
             sorted_pairs = sorted_pairs[:10]
@@ -86,8 +86,8 @@ def topDownload(update: Update, context: CallbackContext) -> None:
 def topSchool(update: Update, context: CallbackContext) -> None:
     try:
         global redis1
-
-        sorted_pairs = redis1.zrange('schoolCode', 0, -1, desc=True, withscores=True)
+        username = update.message.from_user.username
+        sorted_pairs = redis1.zrange(f"{username}_schoolCode", 0, -1, desc=True, withscores=True)
 
         if len(sorted_pairs) > 10:
             sorted_pairs = sorted_pairs[:10]
@@ -165,7 +165,8 @@ def searchPaperRegex(update: Update, context: CallbackContext) -> None:
     try:
         logging.info(context.matches[0].group(1))
         __sp(update, context, searchString=context.matches[0].group(1))
-        redis1.zincrby('schoolCode', 1, context.matches[0].group(1))
+        username = update.message.from_user.username
+        redis1.zincrby(f"{username}_schoolCode", 1, context.matches[0].group(1))
 
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /sp<School Code>',
@@ -199,8 +200,8 @@ def fileIDRegex(update: Update, context: CallbackContext) -> None:
 
         # Send the file as an attachment
         context.bot.send_document(chat_id=update.effective_chat.id, document=file)
-
-        redis1.zincrby('paperName', 1, paper.name)
+        username = update.message.from_user.username
+        redis1.zincrby(f"{username}_paperName", 1, paper.name)
 
     except (IndexError, ValueError):
         update.message.reply_text(f'Cannot find fileId {context.matches[0].group(1)}',
